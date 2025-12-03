@@ -1,1 +1,543 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة معلومات سياسات بنك الدم - 2023</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;700&display=swap');
+        
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: #f8fafc; /* Slate 50 */
+        }
 
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+
+        .nav-item.active {
+            background-color: #ef4444; /* Red 500 */
+            color: white;
+            font-weight: bold;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .transition-all-300 {
+            transition: all 0.3s ease-in-out;
+        }
+    </style>
+    <!-- Chosen Palette: Clean Medical Theme - Primary: Red (Blood/Urgency) #ef4444, Secondary: Slate/Gray (Structure) #f8fafc, Accent: Teal (Safety/Medical) #14b8a6. Background is light for readability. -->
+    <!-- Application Structure Plan: The app is structured as a Dashboard/Guide with 4 main tabs. 
+         1. 'Principles & Ethics': Translates the textual ethical rules into interactive cards.
+         2. 'Donor Standards': Focuses on operational standards and selection criteria.
+         3. 'Quality & Waste Control': Visualizes the statistical models for blood discard reasons using Chart.js.
+         4. 'Inventory & Efficiency': interactive metrics showing inflow/outflow logic and efficiency indicators.
+         This structure was chosen to separate 'Policy/Theory' from 'Operational/Data' aspects, making the dense report digestible. -->
+    <!-- Visualization & Content Choices: 
+         - Ethics: Grid of Cards with hover effects (Text -> Card -> Exploration).
+         - Waste Data: Doughnut Chart for categories (Viral vs Technical vs Expiry) and Bar Chart for Technical breakdowns (Hemolysis, Clots, etc). Goal: Visualizing the quality control metrics.
+         - Inventory: Line Chart simulating monthly trends of Incoming vs Outgoing to demonstrate the report's tracking fields.
+         - Logic: Vanilla JS handles tab switching and Chart.js rendering/destruction to ensure performance.
+         - Icons: Unicode emojis used instead of SVGs. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="text-slate-800">
+
+    <!-- Navigation Bar -->
+    <nav class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2 space-x-reverse">
+                <div class="text-3xl">🩸</div>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-800">سياسات بنك الدم 2023</h1>
+                    <p class="text-xs text-slate-500">الهيئة العامة للتأمين الصحي</p>
+                </div>
+            </div>
+            <div class="hidden md:flex space-x-1 space-x-reverse bg-slate-100 p-1 rounded-lg">
+                <button onclick="app.navigate('principles')" class="nav-item px-4 py-2 rounded-md text-sm transition-all-300" id="nav-principles">المبادئ الأخلاقية</button>
+                <button onclick="app.navigate('operations')" class="nav-item px-4 py-2 rounded-md text-sm transition-all-300" id="nav-operations">المعايير التشغيلية</button>
+                <button onclick="app.navigate('waste')" class="nav-item px-4 py-2 rounded-md text-sm transition-all-300" id="nav-waste">مؤشرات الهدر والجودة</button>
+                <button onclick="app.navigate('inventory')" class="nav-item px-4 py-2 rounded-md text-sm transition-all-300" id="nav-inventory">الرصيد والكفاءة</button>
+            </div>
+            <!-- Mobile Menu Button (simplified interaction) -->
+            <button onclick="document.getElementById('mobile-menu').classList.toggle('hidden')" class="md:hidden text-2xl">☰</button>
+        </div>
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t p-4 flex flex-col space-y-2">
+            <button onclick="app.navigate('principles')" class="text-right px-4 py-2 hover:bg-slate-100 rounded">المبادئ الأخلاقية</button>
+            <button onclick="app.navigate('operations')" class="text-right px-4 py-2 hover:bg-slate-100 rounded">المعايير التشغيلية</button>
+            <button onclick="app.navigate('waste')" class="text-right px-4 py-2 hover:bg-slate-100 rounded">مؤشرات الهدر والجودة</button>
+            <button onclick="app.navigate('inventory')" class="text-right px-4 py-2 hover:bg-slate-100 rounded">الرصيد والكفاءة</button>
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <main id="app-content" class="container mx-auto px-4 py-8 min-h-screen">
+        <!-- Content will be injected here via JS -->
+    </main>
+
+    <footer class="bg-slate-800 text-white py-6 mt-12">
+        <div class="container mx-auto px-4 text-center">
+            <p class="text-sm opacity-75">تم تطوير هذا التطبيق التفاعلي بناءً على "وثيقة قواعد التبرع بالدم في جمهورية مصر العربية 2023".</p>
+            <p class="text-xs mt-2 opacity-50">حقوق الملكية الفكرية للمحتوى محفوظة للهيئة العامة للتأمين الصحي - الإدارة العامة للخدمات الطبية.</p>
+        </div>
+    </footer>
+
+    <script>
+        // --- Data & State Management ---
+        const appData = {
+            principles: [
+                {
+                    title: "المسؤولية المجتمعية",
+                    icon: "🤝",
+                    content: "التبرع بالدم هو واجب إنساني ومسؤولية تقع على عاتق كل شخص لائق طبياً. الهدف هو إعلاء قيم الإيثار والتكافل المجتمعي لضمان توفر الدم للمحتاجين.",
+                    highlight: "مسؤولية كل إنسان لائق"
+                },
+                {
+                    title: "التبرع الطوعي الشرفي",
+                    icon: "💖",
+                    content: "يعتمد المخزون الاستراتيجي أساساً على المتبرعين المتطوعين دون مقابل. يُعرف التبرع غير المدفوع بأنه نابع من محض إرادة الشخص دون تلقي نقد أو هدايا عينية.",
+                    highlight: "المرطبات البسيطة لا تخالف التطوع"
+                },
+                {
+                    title: "الاستبدال العائلي",
+                    icon: "👨‍👩‍👧‍👦",
+                    content: "في حالات تبرع الأقارب، يُفضل التبرع 'غير الموجه'. هذا يعني أن الدم يدخل للرصيد العام ويُصرف للمريض الأنسب طبياً، لضمان العدالة وجودة الدم المنقول.",
+                    highlight: "التبرع غير الموجه هو الأفضل"
+                },
+                {
+                    title: "الموافقة المستنيرة",
+                    icon: "📝",
+                    content: "يجب توعية المتبرع بفوائد ومخاطر التبرع. يُلزم المتبرع بالتوقيع على إقرار بالموافقة على سحب الدم واستخدامه، حمايةً لحقوقه ولضمان المأمونية.",
+                    highlight: "حماية وسلامة المتبرع أولوية"
+                }
+            ],
+            wasteReasons: {
+                labels: ["انتهاء الصلاحية", "أسباب فيروسية", "أسباب فنية/تقنية"],
+                data: [15, 10, 25], // Synthetic data representing proportions for visualization
+                details: "تشير السياسات إلى ضرورة رصد الوحدات التي يتم إعدامها مقارنة بالوارد لتقليل الهدر."
+            },
+            technicalReasons: {
+                labels: ["عدم اكتمال التبرع", "تكسير كرات الدم (Hemolysis)", "وجود تجلطات", "ارتفاع الدهون/الصفراء", "إيجابية اختبار Coombs", "انخفاض الهيماتوكريت"],
+                data: [5, 3, 4, 6, 2, 5], // Synthetic breakdown
+                details: "الأسباب الفنية تعكس كفاءة عملية السحب والاختيار الطبي."
+            },
+            inventory: {
+                months: ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو"],
+                incoming: [120, 135, 110, 145, 130, 150],
+                outgoing: [110, 125, 105, 130, 128, 140]
+            }
+        };
+
+        const app = {
+            state: {
+                currentTab: 'principles',
+                charts: {}
+            },
+
+            init: () => {
+                app.navigate('principles');
+            },
+
+            navigate: (tabId) => {
+                app.state.currentTab = tabId;
+                
+                // Update UI classes
+                document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+                const activeBtn = document.getElementById(`nav-${tabId}`);
+                if(activeBtn) activeBtn.classList.add('active');
+
+                // Render Content
+                const contentDiv = document.getElementById('app-content');
+                contentDiv.innerHTML = ''; // Clear current content
+                
+                // Hide mobile menu if open
+                document.getElementById('mobile-menu').classList.add('hidden');
+
+                switch(tabId) {
+                    case 'principles':
+                        app.renderPrinciples(contentDiv);
+                        break;
+                    case 'operations':
+                        app.renderOperations(contentDiv);
+                        break;
+                    case 'waste':
+                        app.renderWaste(contentDiv);
+                        break;
+                    case 'inventory':
+                        app.renderInventory(contentDiv);
+                        break;
+                }
+                
+                // Scroll to top
+                window.scrollTo(0, 0);
+            },
+
+            renderPrinciples: (container) => {
+                container.innerHTML = `
+                    <div class="animate-fade-in space-y-8">
+                        <div class="text-center max-w-3xl mx-auto mb-10">
+                            <h2 class="text-3xl font-bold text-slate-800 mb-4">المبادئ الأخلاقية للتبرع بالدم</h2>
+                            <p class="text-lg text-slate-600 leading-relaxed">
+                                يرتكز نظام بنوك الدم المصري على مجموعة من القيم الأخلاقية الراسخة التي تهدف لضمان سلامة المتبرع ومأمونية الدم.
+                                يستعرض هذا القسم الركائز الأربعة الأساسية المذكورة في الوثيقة.
+                            </p>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            ${appData.principles.map(item => `
+                                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 card-hover transition-all-300 group cursor-default">
+                                    <div class="flex items-start space-x-4 space-x-reverse">
+                                        <div class="text-4xl bg-red-50 p-3 rounded-full mb-4 group-hover:scale-110 transition-transform">${item.icon}</div>
+                                        <div>
+                                            <h3 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-red-600 transition-colors">${item.title}</h3>
+                                            <p class="text-slate-600 leading-relaxed">${item.content}</p>
+                                            <span class="inline-block mt-3 text-xs font-semibold text-teal-600 bg-teal-50 px-2 py-1 rounded border border-teal-100">
+                                                💡 ${item.highlight}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <div class="mt-12 bg-blue-50 border-r-4 border-blue-500 p-6 rounded-lg shadow-sm">
+                            <h3 class="font-bold text-blue-800 text-lg mb-2">ℹ️ تعريف التبرع الشرفي</h3>
+                            <p class="text-blue-700">
+                                تؤكد السياسات أن تقديم المرطبات البسيطة للمتبرع بعد عملية السحب لا يتعارض مع مبدأ التطوع، بينما يُمنع منعاً باتاً أي مقابل مادي مباشر أو عيني كبير.
+                            </p>
+                        </div>
+                    </div>
+                `;
+            },
+
+            renderOperations: (container) => {
+                container.innerHTML = `
+                    <div class="animate-fade-in space-y-8">
+                         <div class="max-w-4xl mx-auto text-center mb-8">
+                            <h2 class="text-3xl font-bold text-slate-800 mb-4">المعايير التشغيلية وضمان السلامة</h2>
+                            <p class="text-lg text-slate-600">
+                                تلتزم بنوك الدم بتطبيق معايير قومية صارمة في كافة خطوات العمل، بدءاً من اختيار المتبرع وحتى صرف الوحدات.
+                            </p>
+                        </div>
+
+                        <!-- Workflow Visualization using Flex/Grid (No SVG) -->
+                        <div class="relative">
+                            <div class="absolute inset-0 flex items-center" aria-hidden="true">
+                                <div class="w-full border-t border-slate-200 lg:block hidden"></div>
+                            </div>
+                            <div class="relative flex flex-col lg:flex-row justify-between items-center space-y-8 lg:space-y-0">
+                                
+                                <!-- Step 1 -->
+                                <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200 w-full lg:w-1/4 text-center z-10 relative">
+                                    <div class="text-3xl mb-2">📋</div>
+                                    <h3 class="font-bold text-lg mb-2">الاختيار الطبي</h3>
+                                    <p class="text-sm text-slate-500">فحص المتبرع وفق معايير طبية محدثة بانتظام لضمان خلوه من الأمراض وقدرته الصحية.</p>
+                                </div>
+
+                                <!-- Arrow Mobile -->
+                                <div class="lg:hidden text-2xl text-slate-300">⬇️</div>
+
+                                <!-- Step 2 -->
+                                <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200 w-full lg:w-1/4 text-center z-10 relative">
+                                    <div class="text-3xl mb-2">🧪</div>
+                                    <h3 class="font-bold text-lg mb-2">الفحص الفيروسي</h3>
+                                    <p class="text-sm text-slate-500">تحليل الوحدات للكشف عن C, B, HIV, Syphilis وفق البروتوكولات القومية.</p>
+                                </div>
+
+                                <!-- Arrow Mobile -->
+                                <div class="lg:hidden text-2xl text-slate-300">⬇️</div>
+
+                                <!-- Step 3 -->
+                                <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200 w-full lg:w-1/4 text-center z-10 relative">
+                                    <div class="text-3xl mb-2">❄️</div>
+                                    <h3 class="font-bold text-lg mb-2">الفصل والتخزين</h3>
+                                    <p class="text-sm text-slate-500">فصل المكونات وحفظها في درجات حرارة قياسية ومراقبة الصلاحية بدقة.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
+                             <div class="bg-white p-6 rounded-xl shadow-sm border-t-4 border-red-500">
+                                <h3 class="font-bold text-xl mb-4">⚠️ معايير الرفض والحظر</h3>
+                                <ul class="space-y-3">
+                                    <li class="flex items-center text-slate-700">
+                                        <span class="ml-2 text-red-500 text-xl">•</span>
+                                        إيجابية الفحوصات الفيروسية.
+                                    </li>
+                                    <li class="flex items-center text-slate-700">
+                                        <span class="ml-2 text-red-500 text-xl">•</span>
+                                        التاريخ المرضي الذي يشكل خطراً على المتبرع.
+                                    </li>
+                                    <li class="flex items-center text-slate-700">
+                                        <span class="ml-2 text-red-500 text-xl">•</span>
+                                        السلوكيات عالية الخطورة.
+                                    </li>
+                                </ul>
+                            </div>
+                             <div class="bg-white p-6 rounded-xl shadow-sm border-t-4 border-green-500">
+                                <h3 class="font-bold text-xl mb-4">✅ حقوق المتبرع</h3>
+                                <ul class="space-y-3">
+                                    <li class="flex items-center text-slate-700">
+                                        <span class="ml-2 text-green-500 text-xl">✓</span>
+                                        الحصول على شرح وافٍ للمخاطر والفوائد.
+                                    </li>
+                                    <li class="flex items-center text-slate-700">
+                                        <span class="ml-2 text-green-500 text-xl">✓</span>
+                                        سرية المعلومات والنتائج الطبية.
+                                    </li>
+                                    <li class="flex items-center text-slate-700">
+                                        <span class="ml-2 text-green-500 text-xl">✓</span>
+                                        إمكانية الانسحاب من التبرع في أي وقت.
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            },
+
+            renderWaste: (container) => {
+                container.innerHTML = `
+                    <div class="animate-fade-in space-y-8">
+                        <div class="text-center max-w-3xl mx-auto mb-6">
+                            <h2 class="text-3xl font-bold text-slate-800 mb-2">مراقبة الجودة ومعدلات الهدر</h2>
+                            <p class="text-slate-600">
+                                يتطلب نموذج الإحصائيات الشهري رصداً دقيقاً لأسباب إعدام وحدات الدم لرفع الكفاءة وتقليل الفاقد.
+                                البيانات أدناه توضيحية لبيان كيفية تصنيف أسباب الإعدام في التقرير.
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <!-- Main Waste Categories Chart -->
+                            <div class="bg-white p-6 rounded-xl shadow-md border border-slate-100">
+                                <h3 class="font-bold text-lg text-slate-800 mb-4 text-center">توزيع أسباب إعدام الدم</h3>
+                                <div class="chart-container">
+                                    <canvas id="wasteChart"></canvas>
+                                </div>
+                                <p class="text-xs text-center text-slate-400 mt-2">بيانات نموذجية للمحاكاة</p>
+                                <div class="mt-4 text-sm text-slate-600 bg-slate-50 p-3 rounded">
+                                    <strong>تحليل:</strong> يتم مقارنة عدد الوحدات المعدمة (بسبب انتهاء الصلاحية أو الفيروسات) بإجمالي الوارد لتقييم كفاءة إدارة المخزون.
+                                </div>
+                            </div>
+
+                            <!-- Technical Reasons Chart -->
+                            <div class="bg-white p-6 rounded-xl shadow-md border border-slate-100">
+                                <h3 class="font-bold text-lg text-slate-800 mb-4 text-center">تفصيل الأسباب الفنية للإعدام</h3>
+                                <div class="chart-container">
+                                    <canvas id="techReasonChart"></canvas>
+                                </div>
+                                <p class="text-xs text-center text-slate-400 mt-2">بيانات نموذجية للمحاكاة</p>
+                                <div class="mt-4 grid grid-cols-2 gap-2 text-xs text-slate-600">
+                                    <div class="bg-red-50 p-2 rounded"><strong>تكسير الدم (Hemolysis):</strong> مؤشر على مشاكل في السحب أو التخزين.</div>
+                                    <div class="bg-red-50 p-2 rounded"><strong>تجلطات:</strong> تدل على بطء سحب الدم أو عدم مزجه بمانع التجلط جيداً.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Technical Terms Glossary -->
+                        <div class="bg-white p-6 rounded-xl shadow-sm mt-8">
+                            <h3 class="font-bold text-lg mb-4 border-b pb-2">📖 مصطلحات فنية في تقارير الإعدام</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <span class="font-bold text-slate-800 block">اختبار Coombs الموجب</span>
+                                    <span class="text-sm text-slate-500">يدل على وجود أجسام مضادة قد تسبب تحلل الدم.</span>
+                                </div>
+                                <div>
+                                    <span class="font-bold text-slate-800 block">ارتفاع نسبة الدهون (Lipemia)</span>
+                                    <span class="text-sm text-slate-500">يجعل البلازما عكرة ويمنع استخدامها، غالباً بسبب تناول المتبرع وجبة دسمة.</span>
+                                </div>
+                                <div>
+                                    <span class="font-bold text-slate-800 block">عدم اكتمال التبرع</span>
+                                    <span class="text-sm text-slate-500">وحدات تحتوي على كمية دم أقل من اللازم، مما يختل معه توازن مانع التجلط.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Initialize Charts after DOM injection
+                setTimeout(() => {
+                    app.initWasteCharts();
+                }, 0);
+            },
+
+            renderInventory: (container) => {
+                container.innerHTML = `
+                    <div class="animate-fade-in space-y-8">
+                        <div class="text-center max-w-3xl mx-auto mb-6">
+                            <h2 class="text-3xl font-bold text-slate-800 mb-2">مؤشرات الرصيد والكفاءة</h2>
+                            <p class="text-slate-600">
+                                تهدف السياسات لضمان توازن بين "الوارد" (تبرعات) و "المنصرف" (احتياجات المرضى)، مع مراقبة مؤشرات سرعة وكفاءة التوفير.
+                            </p>
+                        </div>
+
+                        <!-- Main Inventory Chart -->
+                        <div class="bg-white p-6 rounded-xl shadow-md border border-slate-100 mb-8">
+                            <h3 class="font-bold text-lg text-slate-800 mb-4 text-center">حركة الوارد والمنصرف (محاكاة نصف سنوية)</h3>
+                            <div class="chart-container">
+                                <canvas id="inventoryChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- KPIs Grid -->
+                        <h3 class="font-bold text-xl text-slate-800 mb-4">مؤشرات كفاءة الأداء (KPIs)</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <!-- KPI 1 -->
+                            <div class="bg-indigo-50 p-6 rounded-xl border border-indigo-100 hover:bg-indigo-100 transition-colors">
+                                <div class="text-2xl mb-2">⚡</div>
+                                <h4 class="font-bold text-indigo-900 mb-2">الصرف السريع (Immediate Spin)</h4>
+                                <p class="text-sm text-indigo-700">
+                                    عدد الوحدات التي تم صرفها بعد إجراء اختبار التوافق بالطريقة السريعة. مؤشر على التعامل مع حالات الطوارئ.
+                                </p>
+                            </div>
+
+                            <!-- KPI 2 -->
+                            <div class="bg-amber-50 p-6 rounded-xl border border-amber-100 hover:bg-amber-100 transition-colors">
+                                <div class="text-2xl mb-2">🔄</div>
+                                <h4 class="font-bold text-amber-900 mb-2">توافق غير متطابق</h4>
+                                <p class="text-sm text-amber-700">
+                                    عدد الحالات التي صُرفت لها وحدات "متوافقة" ولكن من فصيلة مختلفة لضرورة طبية (مثل صرف O- لمريض A-).
+                                </p>
+                            </div>
+
+                            <!-- KPI 3 -->
+                            <div class="bg-emerald-50 p-6 rounded-xl border border-emerald-100 hover:bg-emerald-100 transition-colors">
+                                <div class="text-2xl mb-2">🏥</div>
+                                <h4 class="font-bold text-emerald-900 mb-2">ترشيد الاستهلاك</h4>
+                                <p class="text-sm text-emerald-700">
+                                    رصد "العمليات التي أجريت بدون تحضير دم". مؤشر على دقة طلب الدم وعدم الحجز غير الضروري للوحدات.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-6 mt-8 rounded-lg border-l-4 border-slate-400 shadow-sm">
+                            <h4 class="font-bold text-slate-800">📊 مصادر الوارد في التقرير</h4>
+                            <p class="text-sm text-slate-600 mt-1">يصنف التقرير مصادر الدم إلى: <strong>تبرعات داخلية</strong> (داخل المستشفى/الحملات) و <strong>وارد من بنوك دم أخرى</strong> (الشبكة القومية)، لضمان تتبع المصدر.</p>
+                        </div>
+                    </div>
+                `;
+
+                setTimeout(() => {
+                    app.initInventoryCharts();
+                }, 0);
+            },
+
+            // --- Chart Initialization Logic ---
+            initWasteCharts: () => {
+                const ctx1 = document.getElementById('wasteChart').getContext('2d');
+                new Chart(ctx1, {
+                    type: 'doughnut',
+                    data: {
+                        labels: appData.wasteReasons.labels,
+                        datasets: [{
+                            data: appData.wasteReasons.data,
+                            backgroundColor: ['#f87171', '#fbbf24', '#60a5fa'], // Red, Amber, Blue
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { font: { family: 'Tajawal' } } },
+                            tooltip: { callbacks: { label: (ctx) => ` ${ctx.label}: ${ctx.raw}%` } }
+                        }
+                    }
+                });
+
+                const ctx2 = document.getElementById('techReasonChart').getContext('2d');
+                new Chart(ctx2, {
+                    type: 'bar',
+                    data: {
+                        labels: appData.technicalReasons.labels,
+                        datasets: [{
+                            label: 'عدد الحالات (افتراضي)',
+                            data: appData.technicalReasons.data,
+                            backgroundColor: '#60a5fa',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y', // Horizontal Bar for readable labels
+                        scales: {
+                            x: { beginAtZero: true }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { titleFont: { family: 'Tajawal' }, bodyFont: { family: 'Tajawal' } }
+                        }
+                    }
+                });
+            },
+
+            initInventoryCharts: () => {
+                const ctx = document.getElementById('inventoryChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: appData.inventory.months,
+                        datasets: [
+                            {
+                                label: 'الوارد (تبرعات + بنوك أخرى)',
+                                data: appData.inventory.incoming,
+                                borderColor: '#10b981', // Emerald
+                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                fill: true,
+                                tension: 0.3
+                            },
+                            {
+                                label: 'المنصرف (للمرضى)',
+                                data: appData.inventory.outgoing,
+                                borderColor: '#ef4444', // Red
+                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                fill: true,
+                                tension: 0.3
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        plugins: {
+                            legend: { position: 'top', labels: { font: { family: 'Tajawal' } } },
+                            tooltip: { titleFont: { family: 'Tajawal' }, bodyFont: { family: 'Tajawal' } }
+                        },
+                        scales: {
+                            y: { beginAtZero: false } // Focus on the trend
+                        }
+                    }
+                });
+            }
+        };
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', app.init);
+
+    </script>
+</body>
+</html>
